@@ -24,17 +24,13 @@ interface SpokePoolInterface {
 
     function getCurrentTime() external view returns (uint256);
 
-    function  depositQuoteTimeBuffer() external view returns (uint32);
+    function depositQuoteTimeBuffer() external view returns (uint32);
 
     function setCrossDomainAdmin(address newCrossDomainAdmin) external;
 
     function setWithdrawalRecipient(address newWithdrawalRecipient) external;
 
-    function setEnableRoute(
-        address originToken,
-        uint256 destinationChainId,
-        bool enable
-    ) external;
+    function setEnableRoute(address originToken, uint256 destinationChainId, bool enable) external;
 
     function pauseDeposits(bool pause) external;
 
