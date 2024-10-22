@@ -59,14 +59,17 @@ contract TreasuryDAO {
 
     function scheduleOrModifyIntent(Intent memory intent) external payable {
         if (
-            intent.token == address(0) || intent.amount == 0 || intent.recipient == address(0)
-                || intent.executeAt <= block.timestamp || intent.relayerFee < (intent.amount * 50) / 100
-                || !supportedChains[intent.destinationChainId]
+            intent.token == address(0) ||
+            intent.amount == 0 ||
+            intent.recipient == address(0) ||
+            intent.executeAt <= block.timestamp ||
+            intent.relayerFee < (intent.amount * 50) / 100 ||
+            !supportedChains[intent.destinationChainId]
         ) revert InvalidIntent();
 
         if (
-            intent.token == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
-                && msg.value < (intent.amount + intent.relayerFee)
+            intent.token == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE &&
+            msg.value < (intent.amount + intent.relayerFee)
         ) {
             revert NotEnoughNative(msg.value);
         }
@@ -100,15 +103,18 @@ contract TreasuryDAO {
     ) public {
         if (permitSingle.spender != address(this)) revert InvalidSpender();
         permit2.permit(msg.sender, permitSingle, signature);
-        permit2.transferFrom(msg.sender, address(this), amount, permitSingle.details.token);
+        permit2.transferFrom(
+            msg.sender,
+            address(this),
+            amount,
+            permitSingle.details.token
+        );
         //...Do cooler stuff ...
     }
 
-    function checkUpkeep(bytes calldata /*checkData*/ )
-        external
-        view
-        returns (bool upkeepNeeded, bytes memory performData)
-    {
+    function checkUpkeep(
+        bytes calldata /*checkData*/
+    ) external view returns (bool upkeepNeeded, bytes memory performData) {
         uint256 numberofValidIntents;
         for (uint256 i = 0; i <= totalIntents; i++) {
             if (intents[users[i]].executeAt < block.timestamp) {
@@ -124,10 +130,9 @@ contract TreasuryDAO {
                 ++index;
             }
         }
-        uint256[] memory newValidIntents = new uint256[](index);
         if (validIntents.length > 0) {
             upkeepNeeded = true;
-            performData = abi.encode(newValidIntents);
+            performData = abi.encode(validIntents);
         }
     }
 
@@ -135,10 +140,10 @@ contract TreasuryDAO {
         uint256[] memory validIntents = abi.decode(performData, (uint256[]));
         for (uint256 i = 0; i < validIntents.length; i++) {
             Intent memory intent = intents[users[validIntents[i]]];
-            if (intent.amount > maxAllowedWithoutMultiSig && !multiSig.execute()) {
-                revert NotAllowedToTransfer(i);
-            }
-            if (intents[users[i]].executeAt < block.timestamp) {
+            if (
+                intent.amount < maxAllowedWithoutMultiSig &&
+                intents[users[i]].executeAt < block.timestamp
+            ) {
                 _crossChainTransfer(intent);
             }
         }
