@@ -3,10 +3,11 @@ pragma solidity 0.8.22;
 
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {SpokePoolInterface} from "./interfaces/ISpokePool.sol";
-import {IERC20} from "./interfaces/IERC20.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {IMultiSig} from "./interfaces/IMultiSig.sol";
 
-contract TreasuryDAO {
+contract TreasuryDAO is Ownable{
     error InvalidSpender();
     error InvalidIntent();
     error InvalidZeroChainID();
@@ -27,7 +28,7 @@ contract TreasuryDAO {
 
     IAllowanceTransfer immutable permit2;
     SpokePoolInterface immutable spokePool;
-    IMultiSig immutable multiSig;
+    IMultiSig public multiSig;
     uint256 private totalIntents;
     uint256 immutable maxAllowedWithoutMultiSig;
     mapping(uint256 intentNumber => address user) public users;
@@ -37,10 +38,9 @@ contract TreasuryDAO {
     constructor(
         address _permit2,
         address _spokePool,
-        address _multiSig,
         uint256[] memory chainIds,
         uint256 _maxAllowed
-    ) {
+    ) Ownable() {
         if (_spokePool == address(0) || _permit2 == address(0)) {
             revert ZeroAddress();
         }
@@ -53,8 +53,12 @@ contract TreasuryDAO {
 
         permit2 = IAllowanceTransfer(_permit2);
         spokePool = SpokePoolInterface(_spokePool);
-        multiSig = IMultiSig(_multiSig);
         maxAllowedWithoutMultiSig = _maxAllowed;
+    }
+
+    function setMultiSig(address _multiSig) external onlyOwner{
+        if(_multiSig == address(0)) revert ZeroAddress();
+        multiSig = IMultiSig(_multiSig);
     }
 
     function scheduleOrModifyIntent(Intent memory intent) external payable {
@@ -63,7 +67,7 @@ contract TreasuryDAO {
             intent.amount == 0 ||
             intent.recipient == address(0) ||
             intent.executeAt <= block.timestamp ||
-            intent.relayerFee < (intent.amount * 50) / 100 ||
+            intent.relayerFee > (intent.amount * 50) / 100 ||
             !supportedChains[intent.destinationChainId]
         ) revert InvalidIntent();
 
@@ -109,7 +113,6 @@ contract TreasuryDAO {
             amount,
             permitSingle.details.token
         );
-        //...Do cooler stuff ...
     }
 
     function checkUpkeep(
