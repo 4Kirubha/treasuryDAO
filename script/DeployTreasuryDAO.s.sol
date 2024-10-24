@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^ 0.8.18;
+pragma solidity 0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {TreasuryDAO} from "../src/TreasuryDAO.sol";
@@ -17,32 +17,32 @@ contract DeployTreasuryDAO is Script {
         11155420,
         80002
     ];
-    address[] public owners = [
-        address(1),
-        address(2),
-        address(3)
-    ];
-    uint256 public maxAllowed = 1000e6;
+    address[] public owners = [address(1), address(2), address(3)];
+    uint256 public maxAllowedToken = 1000e6;
+    uint256 public maxAllowedETH = 0.5 ether;
 
-    function run() external returns (TreasuryDAO, MultiSig, HelperConfig){
+    function run() external returns (TreasuryDAO, MultiSig, HelperConfig) {
         HelperConfig config = new HelperConfig();
-        (address permit2, address spokePool, uint256 deployerKey) = config.activeNetworkConfig();
+        (
+            address permit2,
+            address spokePool,
+            address wethAddress,
+            uint256 deployerKey
+        ) = config.activeNetworkConfig();
 
         vm.startBroadcast(deployerKey);
         TreasuryDAO treasuryDAO = new TreasuryDAO(
             permit2,
             spokePool,
+            wethAddress,
             chainIds,
-            maxAllowed
+            maxAllowedToken,
+            maxAllowedETH
         );
-        MultiSig multiSig = new MultiSig(
-            owners,
-            2,
-            address(treasuryDAO)
-        );
+        MultiSig multiSig = new MultiSig(owners, 2, address(treasuryDAO));
 
         treasuryDAO.transferOwnership(address(1));
         vm.stopBroadcast();
-        return(treasuryDAO, multiSig, config);
+        return (treasuryDAO, multiSig, config);
     }
 }

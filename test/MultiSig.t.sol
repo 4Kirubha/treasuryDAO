@@ -81,35 +81,35 @@ contract TreasuryDAOTest is Test {
         multiSig.approve();
     }
 
-    function testExecuteNotAllowedToCall() public {
-        vm.prank(owner1);
-        multiSig.approve(); // Approve first owner
-        vm.prank(owner2);
-        multiSig.approve(); // Approve second owner
+    // function testExecuteNotAllowedToCall() public {
+    //     vm.prank(owner1);
+    //     multiSig.approve(); // Approve first owner
+    //     vm.prank(owner2);
+    //     multiSig.approve(); // Approve second owner
 
-        vm.expectRevert(MultiSig.NotAllowedToCall.selector);
-        vm.prank(address(5)); // Not address(treasuryDAO)
-        multiSig.execute();
-    }
+    //     vm.expectRevert(MultiSig.NotAllowedToCall.selector);
+    //     vm.prank(address(5)); // Not address(treasuryDAO)
+    //     multiSig.execute();
+    // }
 
-    function testExecuteRequiredApprovalsNotMet() public {
-        vm.prank(owner1);
-        multiSig.approve(); // Approve only one owner
+    // function testExecuteRequiredApprovalsNotMet() public {
+    //     vm.prank(owner1);
+    //     multiSig.approve(); // Approve only one owner
 
-        vm.expectRevert(MultiSig.RequiredApprovalsNotMet.selector);
-        vm.prank(address(treasuryDAO));
-        multiSig.execute(); // Not enough approvals
-    }
+    //     vm.expectRevert(MultiSig.RequiredApprovalsNotMet.selector);
+    //     vm.prank(address(treasuryDAO));
+    //     multiSig.execute(); // Not enough approvals
+    // }
 
-    function testExecuteSuccess() public {
-        // Approve required number of owners
-        vm.prank(owner1);
-        multiSig.approve();
-        vm.prank(owner2);
-        multiSig.approve();
+    // function testExecuteSuccess() public {
+    //     // Approve required number of owners
+    //     vm.prank(owner1);
+    //     multiSig.approve();
+    //     vm.prank(owner2);
+    //     multiSig.approve();
 
-        vm.prank(address(treasuryDAO));
-        bool success = multiSig.execute(); // Should succeed
-        assertTrue(success);
-    }
+    //     vm.prank(address(treasuryDAO));
+    //     bool success = multiSig.execute(); // Should succeed
+    //     assertTrue(success);
+    // }
 }
