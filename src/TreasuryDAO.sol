@@ -174,21 +174,21 @@ contract TreasuryDAO is Ownable {
                     intent.token == nativeAddress &&
                     intent.amount < maxETHAllowedWithoutMultiSig
                 ) {
-                    _crossChainTransfer(intent);
                     intents[users[validIntents[i]]].executed = true;
+                    _crossChainTransfer(intent);
                 } else if (
                     intent.token != nativeAddress &&
                     intent.amount < maxTokenAllowedWithoutMultiSig
-                ) {
-                    _crossChainTransfer(intent);
+                ) {                        
                     intents[users[validIntents[i]]].executed = true;
+                    _crossChainTransfer(intent);
                 } else {
                     if (
                         multiSig.getApprovalCount() >=
                         multiSig.requiredApprovals()
-                    ) {
-                        _crossChainTransfer(intent);
+                    ) {                        
                         intents[users[validIntents[i]]].executed = true;
+                        _crossChainTransfer(intent);
                     }
                 }
             }
