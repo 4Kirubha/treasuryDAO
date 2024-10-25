@@ -18,6 +18,7 @@ contract TreasuryDAO is Ownable {
     error ZeroAddress();
     error NotEnoughNative(uint256 amount);
     error NotAllowedToTransfer(uint256 index);
+    error NoValidIntents();
 
     // Event emitted when an intent is scheduled
     event ScheduledIntent(address user, Intent intent);
@@ -131,7 +132,10 @@ contract TreasuryDAO is Ownable {
     ) external view returns (bool upkeepNeeded, bytes memory performData) {
         uint256 numberofValidIntents;
         for (uint256 i = 0; i < totalIntents; i++) {
-            if (intents[users[i]].executeAt < block.timestamp) {
+            if (                
+                intents[users[i]].executeAt < block.timestamp &&
+                !intents[users[i]].executed
+            ) {
                 ++numberofValidIntents;
             }
         }

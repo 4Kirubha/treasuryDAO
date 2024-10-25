@@ -42,6 +42,7 @@ contract DeployTreasuryDAO is Script {
         MultiSig multiSig = new MultiSig(owners, 2, address(treasuryDAO));
 
         treasuryDAO.transferOwnership(address(1));
+        treasuryDAO.setMultiSig(address(multiSig));
         vm.stopBroadcast();
         return (treasuryDAO, multiSig, config);
     }

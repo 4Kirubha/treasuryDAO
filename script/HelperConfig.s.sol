@@ -18,8 +18,8 @@ contract HelperConfig is Script {
     constructor() {
         if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaEthConfig();
-        } else if (block.chainid == 11155420) {
-            activeNetworkConfig = getOPSepoliaEthConfig();
+        } else if (block.chainid == 84532) {
+            activeNetworkConfig = getBaseSepoliaEthConfig();
         } else {
             activeNetworkConfig = getOrCreateAnvilEthConfig();
         }
@@ -35,7 +35,7 @@ contract HelperConfig is Script {
             });
     }
 
-    function getOPSepoliaEthConfig()
+    function getBaseSepoliaEthConfig()
         public
         pure
         returns (NetworkConfig memory)
@@ -43,8 +43,8 @@ contract HelperConfig is Script {
         return
             NetworkConfig({
                 permit2: 0x000000000022D473030F116dDEE9F6B43aC78BA3,
-                spokePool: 0x4e8E101924eDE233C13e2D8622DC8aED2872d505,
-                wethAddress: 0x74A4A85C611679B73F402B36c0F84A7D2CcdFDa3,
+                spokePool: 0x82B564983aE7274c86695917BBf8C99ECb6F0F8F,
+                wethAddress: 0x4200000000000000000000000000000000000006,
                 deployerKey: DEFAULT_ANVIL_KEY
             });
     }
