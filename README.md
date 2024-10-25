@@ -20,4 +20,4 @@ Ensure you have the following installed:
 To run the tests, navigate to the project directory and execute:
 
 ```bash
-forge test
+forge test --fork-url RPC_URL --evm-version cancun
