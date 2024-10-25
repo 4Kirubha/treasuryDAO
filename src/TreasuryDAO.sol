@@ -191,6 +191,8 @@ contract TreasuryDAO is Ownable {
                         _crossChainTransfer(intent);
                     }
                 }
+            }else {
+                revert NoValidIntents();
             }
         }
     }
