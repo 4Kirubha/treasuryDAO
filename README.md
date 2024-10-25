@@ -21,3 +21,8 @@ To run the tests, navigate to the project directory and execute:
 
 ```bash
 forge test --fork-url RPC_URL --evm-version cancun
+
+
+### Automation
+
+For Automatic transfers used Chainlink Automation, where checkKeepUp checks the required conditions and returns valid intents to performUpKeep.
