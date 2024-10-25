@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.22;
 
+// Import necessary interfaces and libraries
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {SpokePoolInterface} from "./interfaces/ISpokePool.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -8,7 +9,9 @@ import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {IMultiSig} from "./interfaces/IMultiSig.sol";
 import {console} from "forge-std/console.sol";
 
+// Main contract for Treasury DAO
 contract TreasuryDAO is Ownable {
+    // Custom error definitions for better error handling
     error InvalidSpender();
     error InvalidIntent();
     error InvalidZeroChainID();
@@ -16,31 +19,34 @@ contract TreasuryDAO is Ownable {
     error NotEnoughNative(uint256 amount);
     error NotAllowedToTransfer(uint256 index);
 
+    // Event emitted when an intent is scheduled
     event ScheduledIntent(address user, Intent intent);
 
+    // Struct representing an intent
     struct Intent {
-        address token;
-        uint256 amount;
-        address recipient;
-        uint256 destinationChainId;
-        uint256 executeAt;
-        uint64 relayerFee;
-        bool executed;
+        address token;               // Token address for the transfer
+        uint256 amount;              // Amount of tokens to transfer
+        address recipient;           // Recipient address for the transfer
+        uint256 destinationChainId;  // ID of the destination chain
+        uint256 executeAt;           // Timestamp for when the transfer should occur
+        uint64 relayerFee;           // Fee for the relayer
+        bool executed;               // Status of intent execution
     }
 
-    IAllowanceTransfer private immutable permit2;
-    SpokePoolInterface private immutable spokePool;
-    IMultiSig private multiSig;
-    uint256 private totalIntents;
-    uint256 private immutable maxTokenAllowedWithoutMultiSig;
-    uint256 private immutable maxETHAllowedWithoutMultiSig;
-    address private constant nativeAddress =
-        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-    address private immutable wethAddress;
-    mapping(uint256 intentNumber => address user) public users;
-    mapping(address user => Intent intent) public intents;
-    mapping(uint256 chainId => bool supported) public supportedChains;
+    // Contract state variables
+    IAllowanceTransfer private immutable permit2;            // Permit2 contract for allowances
+    SpokePoolInterface private immutable spokePool;          // SpokePool contract for cross-chain transfers
+    IMultiSig private multiSig;                               // Multi-sig contract for approvals
+    uint256 private totalIntents;                             // Total number of scheduled intents
+    uint256 private immutable maxTokenAllowedWithoutMultiSig; // Max tokens allowed for transfer without multi-sig
+    uint256 private immutable maxETHAllowedWithoutMultiSig;   // Max ETH allowed for transfer without multi-sig
+    address private constant nativeAddress = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE; // Native token address
+    address private immutable wethAddress;                     // WETH address
+    mapping(uint256 => address) public users;                // Mapping from intent number to user
+    mapping(address => Intent) public intents;               // Mapping from user to their intent
+    mapping(uint256 => bool) public supportedChains;         // Mapping for supported chains
 
+    // Constructor to initialize the contract
     constructor(
         address _permit2,
         address _spokePool,
@@ -49,16 +55,19 @@ contract TreasuryDAO is Ownable {
         uint256 _maxAllowedToken,
         uint256 _maxAllowedETH
     ) Ownable() {
+        // Validate addresses
         if (_spokePool == address(0) || _permit2 == address(0)) {
             revert ZeroAddress();
         }
 
+        // Initialize supported chains
         uint256 arrayLength = chainIds.length;
         for (uint256 i = 0; i < arrayLength; i++) {
             if (chainIds[i] == 0) revert InvalidZeroChainID();
             supportedChains[chainIds[i]] = true;
         }
 
+        // Assign contract addresses and limits
         permit2 = IAllowanceTransfer(_permit2);
         spokePool = SpokePoolInterface(_spokePool);
         wethAddress = _wethAddress;
@@ -66,26 +75,30 @@ contract TreasuryDAO is Ownable {
         maxETHAllowedWithoutMultiSig = _maxAllowedETH;
     }
 
+    // Function to set multi-sig address
     function setMultiSig(address _multiSig) external onlyOwner {
         if (_multiSig == address(0)) revert ZeroAddress();
         multiSig = IMultiSig(_multiSig);
     }
 
+    // Function to schedule or modify an intent
     function scheduleOrModifyIntent(Intent memory intent) external payable {
+        // Validate the intent details
         if (
             intent.token == address(0) ||
             intent.amount == 0 ||
             intent.recipient == address(0) ||
             intent.executeAt <= block.timestamp ||
             intent.destinationChainId == block.chainid ||
-            // intent.relayerFee > (intent.amount * 50) / 100 ||
             !supportedChains[intent.destinationChainId]
         ) revert InvalidIntent();
 
+        // Check if enough native currency is provided
         if (intent.token == nativeAddress && msg.value < intent.amount) {
             revert NotEnoughNative(msg.value);
         }
 
+        // If this is the first intent for the user, track them
         if (intents[msg.sender].amount == 0) {
             users[totalIntents] = msg.sender;
             totalIntents++;
@@ -96,6 +109,7 @@ contract TreasuryDAO is Ownable {
         emit ScheduledIntent(msg.sender, intent);
     }
 
+    // Function to permit and transfer tokens to the contract
     function permitAndTransferToContract(
         IAllowanceTransfer.PermitSingle calldata permitSingle,
         bytes calldata signature,
@@ -111,6 +125,7 @@ contract TreasuryDAO is Ownable {
         );
     }
 
+    // Function to check if upkeep is needed
     function checkUpkeep(
         bytes calldata /*checkData*/
     ) external view returns (bool upkeepNeeded, bytes memory performData) {
@@ -138,11 +153,13 @@ contract TreasuryDAO is Ownable {
         }
     }
 
+    // Function to trigger intents for execution
     function triggerIntent(uint256[] memory intentsToTrigger) external {
         bytes memory validIntends = abi.encode(intentsToTrigger);
         performUpkeep(validIntends);
     }
 
+    // Function to perform the upkeep of valid intents
     function performUpkeep(bytes memory performData) public {
         uint256[] memory validIntents = abi.decode(performData, (uint256[]));
         if (validIntents[validIntents.length - 1] > (totalIntents - 1))
@@ -178,15 +195,17 @@ contract TreasuryDAO is Ownable {
         }
     }
 
+    // Internal function to perform the cross-chain transfer
     function _crossChainTransfer(Intent memory intent) internal {
         uint256 ethValue;
         if (intent.token == nativeAddress) {
             ethValue = intent.amount + intent.relayerFee;
-            intent.token = wethAddress;
+            intent.token = wethAddress; // Convert native to WETH
         } else {
             ethValue = intent.relayerFee;
-            IERC20(intent.token).approve(address(spokePool), intent.amount);
+            IERC20(intent.token).approve(address(spokePool), intent.amount); // Approve token transfer
         }
+        // Call deposit on spoke pool for cross-chain transfer
         spokePool.deposit{value: intent.amount}(
             intent.recipient,
             intent.token,
@@ -199,6 +218,7 @@ contract TreasuryDAO is Ownable {
         );
     }
 
+    // Getter functions for various contract addresses and limits
     function getSpokePool() external view returns (address) {
         return address(spokePool);
     }
